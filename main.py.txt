@@ -1,0 +1,51 @@
+from fastapi import FastAPI, Form, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+import google.generativeai as genai
+
+API_KEY = "YOUR_API_KEY_HERE"
+genai.configure(api_key=API_KEY)
+model = genai.GenerativeModel('gemini-1.5-flash')
+
+app = FastAPI()
+templates = Jinja2Templates(directory="templates")
+
+def ask_gemini(prompt):
+    try:
+        res = model.generate_content(prompt)
+        return res.text
+    except Exception as e:
+        return f"Error: {e}"
+
+@app.get("/", response_class=HTMLResponse)
+async def home(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request, "result": ""})
+
+@app.post("/qa", response_class=HTMLResponse)
+async def qa(request: Request, question: str = Form(...)):
+    ans = ask_gemini(f"Answer short: {question}")
+    return templates.TemplateResponse("index.html", {"request": request, "result": ans})
+
+@app.post("/explain", response_class=HTMLResponse)
+async def explain(request: Request, question: str = Form(...)):
+    ans = ask_gemini(f"Explain {question} in simple way")
+    return templates.TemplateResponse("index.html", {"request": request, "result": ans})
+
+@app.post("/quiz", response_class=HTMLResponse)
+async def quiz(request: Request, question: str = Form(...)):
+    ans = ask_gemini(f"Generate 3 MCQs for {question}")
+    return templates.TemplateResponse("index.html", {"request": request, "result": ans})
+
+@app.post("/summarize", response_class=HTMLResponse)
+async def summarize(request: Request, question: str = Form(...)):
+    ans = ask_gemini(f"Summarize: {question}")
+    return templates.TemplateResponse("index.html", {"request": request, "result": ans})
+
+@app.post("/path", response_class=HTMLResponse)
+async def path(request: Request, question: str = Form(...)):
+    ans = ask_gemini(f"Learning path for {question}")
+    return templates.TemplateResponse("index.html", {"request": request, "result": ans})
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8000)
